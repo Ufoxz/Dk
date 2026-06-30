@@ -221,6 +221,10 @@ tbody tr:hover{background:var(--panel-2);}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/><circle cx="12" cy="12" r="10" opacity="0"/></svg>
       Por Cobrar
     </button>
+    <button data-page="abonos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+      Abonos
+    </button>
     <button data-page="deudas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 1.5c1.4 0 2.5-.8 2.5-2 0-2.5-5-1.5-5-4 0-1.2 1.1-2 2.5-2a2.5 2.5 0 0 1 2.5 1.5M12 7v1.2M12 15.8V17"/></svg>
       Deudas
@@ -410,6 +414,10 @@ tbody tr:hover{background:var(--panel-2);}
         <h3>Nueva cuenta por cobrar</h3>
         <form id="form-porcobrar" class="form-grid">
           <div class="field full"><label>Deudor</label><input type="text" id="cob-deudor" placeholder="Juan Pérez, Cliente, Empresa..." required></div>
+          <div class="field">
+            <label>Negocio / categoría</label>
+            <select id="cob-negocio" required></select>
+          </div>
           <div class="field"><label>Valor</label><input type="number" id="cob-valor" min="0" step="1" placeholder="500000" required></div>
           <div class="field"><label>Fecha de inicio</label><input type="date" id="cob-inicio" required></div>
           <div class="field"><label>Fecha límite</label><input type="date" id="cob-limite" required></div>
@@ -426,13 +434,50 @@ tbody tr:hover{background:var(--panel-2);}
         <div class="list-content" id="cob-list-content" style="display:none;">
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Deudor</th><th class="num">Valor</th><th>Inicio</th><th>Vence</th><th>Estado</th><th></th></tr></thead>
+              <thead><tr><th>Deudor</th><th>Negocio</th><th class="num">Valor</th><th class="num">Abonado</th><th class="num">Saldo</th><th>Vence</th><th>Estado</th><th></th></tr></thead>
               <tbody id="cob-tabla"></tbody>
             </table>
           </div>
           <div id="cob-empty" class="empty" style="display:none;">No tienes cuentas por cobrar registradas.</div>
         </div>
         <div class="list-toggle-wrap"><button class="btn secondary small list-toggle" id="cob-list-toggle">Ver por cobrar</button></div>
+      </div>
+    </section>
+
+    <!-- ABONOS -->
+    <section class="page" id="page-abonos">
+      <div class="page-head">
+        <div><h1>Abonos</h1><div class="desc">Registra pagos parciales de tus cuentas por cobrar</div></div>
+      </div>
+      <div class="panel" id="cob-abono-panel">
+        <h3>Registrar abono</h3>
+        <form id="form-abono" class="form-grid">
+          <div class="field full">
+            <label>Cuenta por cobrar</label>
+            <select id="abo-deudor" required></select>
+          </div>
+          <div class="field"><label>Valor del abono</label><input type="number" id="abo-valor" min="0" step="1" placeholder="100000" required></div>
+          <div class="field">
+            <label>Cuenta destino</label>
+            <select id="abo-cuenta" required></select>
+          </div>
+          <div class="field"><label>Fecha</label><input type="date" id="abo-fecha" required></div>
+          <div class="field full"><label>Descripción (opcional)</label><input type="text" id="abo-desc" placeholder="Abono parcial"></div>
+          <div class="field full"><button type="submit" class="btn">Guardar Abono</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Historial de abonos</h3>
+        <div class="list-content" id="abo-list-content" style="display:none;">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Fecha</th><th>Deudor</th><th>Cuenta destino</th><th>Descripción</th><th class="num">Valor</th></tr></thead>
+              <tbody id="abo-tabla"></tbody>
+            </table>
+          </div>
+          <div id="abo-empty" class="empty" style="display:none;">Aún no has registrado ningún abono.</div>
+        </div>
+        <div class="list-toggle-wrap"><button class="btn secondary small list-toggle" id="abo-list-toggle">Ver historial de abonos</button></div>
       </div>
     </section>
 
@@ -654,6 +699,7 @@ setupListToggle('gas-list-toggle','gas-list-content','Ver historial de gastos','
 setupListToggle('tra-list-toggle','tra-list-content','Ver historial de traslados','Ocultar historial de traslados');
 setupListToggle('deu-list-toggle','deu-list-content','Ver mis deudas','Ocultar mis deudas');
 setupListToggle('cob-list-toggle','cob-list-content','Ver por cobrar','Ocultar por cobrar');
+setupListToggle('abo-list-toggle','abo-list-content','Ver historial de abonos','Ocultar historial de abonos');
 setupListToggle('hist-list-toggle','hist-list-content','Ver historial completo','Ocultar historial completo');
 
 /* ========================= NAVEGACION ========================= */
@@ -667,18 +713,22 @@ hamburgerBtn.addEventListener('click', ()=>{
 });
 navOverlay.addEventListener('click', closeNav);
 
+function goToPage(pageName){
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===pageName));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pageName).classList.add('active');
+  if(pageName === 'dashboard') renderDashboard();
+  if(pageName === 'traslados') renderTraslados();
+  if(pageName === 'reportes') renderReportes();
+  if(pageName === 'config') renderConfig();
+  if(pageName === 'porcobrar') renderPorCobrar();
+  if(pageName === 'abonos') renderAbonos();
+}
+
 document.getElementById('nav').addEventListener('click', e=>{
   const btn = e.target.closest('button[data-page]');
   if(!btn) return;
-  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+btn.dataset.page).classList.add('active');
-  if(btn.dataset.page === 'dashboard') renderDashboard();
-  if(btn.dataset.page === 'traslados') renderTraslados();
-  if(btn.dataset.page === 'reportes') renderReportes();
-  if(btn.dataset.page === 'config') renderConfig();
-  if(btn.dataset.page === 'porcobrar') renderPorCobrar();
+  goToPage(btn.dataset.page);
   closeNav();
 });
 
@@ -705,6 +755,8 @@ function refreshAllSelects(){
   fillSelect(document.getElementById('gas-cuenta'), state.accounts, false);
   fillSelect(document.getElementById('tra-origen'), state.accounts, false);
   fillSelect(document.getElementById('tra-destino'), state.accounts, false);
+  fillSelect(document.getElementById('cob-negocio'), state.incomeCategories, false);
+  fillSelect(document.getElementById('abo-cuenta'), state.accounts, false);
 
   // filtros reportes
   const fNeg = document.getElementById('f-negocio');
@@ -868,10 +920,19 @@ function renderTraslados(){
 
 /* ========================= POR COBRAR ========================= */
 document.getElementById('cob-inicio').value = todayISO();
+document.getElementById('abo-fecha').value = todayISO();
+
+function receivableAbonado(c){
+  return (c.abonos||[]).reduce((s,a)=>s+a.value,0);
+}
+function receivableSaldo(c){
+  return Math.max(0, c.value - receivableAbonado(c));
+}
 
 document.getElementById('form-porcobrar').addEventListener('submit', e=>{
   e.preventDefault();
   const deudor = document.getElementById('cob-deudor').value.trim();
+  const negocio = document.getElementById('cob-negocio').value;
   const valor = parseFloat(document.getElementById('cob-valor').value);
   const inicio = document.getElementById('cob-inicio').value;
   const limite = document.getElementById('cob-limite').value;
@@ -879,7 +940,7 @@ document.getElementById('form-porcobrar').addEventListener('submit', e=>{
   const desc = document.getElementById('cob-desc').value.trim();
   if(!deudor || !valor || valor<=0 || !inicio || !limite){ showToast('Completa todos los campos requeridos'); return; }
 
-  state.receivables.push({id:uid(), debtor:deudor, value:valor, startDate:inicio, dueDate:limite, status:estado, description:desc});
+  state.receivables.push({id:uid(), debtor:deudor, business:negocio, value:valor, startDate:inicio, dueDate:limite, status:estado, description:desc, abonos:[]});
   saveState();
   e.target.reset();
   document.getElementById('cob-inicio').value = todayISO();
@@ -888,7 +949,63 @@ document.getElementById('form-porcobrar').addEventListener('submit', e=>{
   showToast('Cuenta por cobrar guardada');
 });
 
+function fillAboDeudorSelect(){
+  const sel = document.getElementById('abo-deudor');
+  const cur = sel.value;
+  sel.innerHTML = '';
+  const pendientes = state.receivables.filter(c=> receivableSaldo(c) > 0);
+  if(!pendientes.length){
+    const opt = document.createElement('option');
+    opt.value=''; opt.textContent='No hay cuentas pendientes por cobrar';
+    sel.appendChild(opt);
+    return;
+  }
+  pendientes.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = `${c.debtor} — saldo ${fmt(receivableSaldo(c))}`;
+    sel.appendChild(opt);
+  });
+  if(pendientes.some(c=>c.id===cur)) sel.value = cur;
+}
+
+document.getElementById('form-abono').addEventListener('submit', e=>{
+  e.preventDefault();
+  const recId = document.getElementById('abo-deudor').value;
+  const valor = parseFloat(document.getElementById('abo-valor').value);
+  const cuenta = document.getElementById('abo-cuenta').value;
+  const fecha = document.getElementById('abo-fecha').value || todayISO();
+  const desc = document.getElementById('abo-desc').value.trim();
+  if(!recId){ showToast('Elige una cuenta por cobrar'); return; }
+  const rec = state.receivables.find(x=>x.id===recId);
+  if(!rec){ showToast('Esa cuenta por cobrar ya no existe'); return; }
+  if(!valor || valor<=0){ showToast('Ingresa un valor válido'); return; }
+  const saldoActual = receivableSaldo(rec);
+  if(valor > saldoActual){ showToast(`El abono no puede ser mayor al saldo pendiente (${fmt(saldoActual)})`); return; }
+
+  if(!rec.abonos) rec.abonos = [];
+  rec.abonos.push({id:uid(), date:fecha, value:valor, account:cuenta, description:desc});
+
+  // El abono entra como ingreso real a la cuenta elegida, en el negocio asociado a la cuenta por cobrar
+  state.incomes.push({
+    id:uid(), date:fecha, category:rec.business, account:cuenta, value:valor,
+    description:`Abono de ${rec.debtor}${desc? ' - '+desc:''}`
+  });
+
+  if(receivableSaldo(rec) <= 0) rec.status = 'Cobrada';
+
+  saveState();
+  e.target.reset();
+  document.getElementById('abo-fecha').value = todayISO();
+  renderPorCobrar();
+  renderAbonos();
+  renderIngresos();
+  renderDashboard();
+  showToast('Abono registrado');
+});
+
 function renderPorCobrar(){
+  fillAboDeudorSelect();
   const tbody = document.getElementById('cob-tabla');
   const sorted = [...state.receivables].sort((a,b)=> a.dueDate.localeCompare(b.dueDate));
   tbody.innerHTML='';
@@ -896,14 +1013,23 @@ function renderPorCobrar(){
   sorted.forEach(c=>{
     const tr = document.createElement('tr');
     const tagClass = c.status==='Cobrada' ? 'pagada':'pend';
-    tr.innerHTML = `<td>${c.debtor}</td><td class="num mono">${fmt(c.value)}</td><td>${c.startDate}</td><td>${c.dueDate}</td>
+    const abonado = receivableAbonado(c);
+    const saldo = receivableSaldo(c);
+    tr.innerHTML = `<td>${c.debtor}</td><td><span class="tag">${c.business||'—'}</span></td><td class="num mono">${fmt(c.value)}</td><td class="num mono">${fmt(abonado)}</td><td class="num mono">${fmt(saldo)}</td><td>${c.dueDate}</td>
     <td><span class="tag ${tagClass}">${c.status}</span></td>
     <td class="row-actions">
+      <button class="icon-btn abonar" data-id="${c.id}" title="Registrar abono">＋</button>
       <button class="icon-btn toggle" data-id="${c.id}" title="Cambiar estado">⇄</button>
       <button class="icon-btn del" data-id="${c.id}" title="Eliminar">✕</button>
     </td>`;
     tbody.appendChild(tr);
   });
+  tbody.querySelectorAll('.abonar').forEach(b=>b.addEventListener('click', ()=>{
+    goToPage('abonos');
+    fillAboDeudorSelect();
+    document.getElementById('abo-deudor').value = b.dataset.id;
+    document.getElementById('cob-abono-panel').scrollIntoView({behavior:'smooth', block:'start'});
+  }));
   tbody.querySelectorAll('.toggle').forEach(b=>b.addEventListener('click', ()=>{
     const c = state.receivables.find(x=>x.id===b.dataset.id);
     c.status = c.status==='Cobrada' ? 'Pendiente':'Cobrada';
@@ -916,6 +1042,23 @@ function renderPorCobrar(){
       showToast('Cuenta por cobrar eliminada');
     });
   }));
+}
+
+function renderAbonos(){
+  fillAboDeudorSelect();
+  const tbody = document.getElementById('abo-tabla');
+  let rows = [];
+  state.receivables.forEach(c=>{
+    (c.abonos||[]).forEach(a=> rows.push({date:a.date, debtor:c.debtor, account:a.account, description:a.description, value:a.value}));
+  });
+  rows.sort((a,b)=> b.date.localeCompare(a.date));
+  tbody.innerHTML='';
+  document.getElementById('abo-empty').style.display = rows.length? 'none':'block';
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.date}</td><td>${r.debtor}</td><td>${r.account}</td><td>${r.description||'—'}</td><td class="num mono">${fmt(r.value)}</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 /* ========================= DEUDAS ========================= */
@@ -979,7 +1122,7 @@ function renderDashboard(){
   const totalOut = monthExpenses.reduce((s,g)=>s+g.value,0);
   const balance = totalIn - totalOut;
   const totalDebt = state.debts.filter(d=>d.status==='Pendiente').reduce((s,d)=>s+d.value,0);
-  const totalReceivable = state.receivables.filter(c=>c.status==='Pendiente').reduce((s,c)=>s+c.value,0);
+  const totalReceivable = state.receivables.reduce((s,c)=> s + receivableSaldo(c), 0);
 
   document.getElementById('d-ingresos').textContent = fmt(totalIn);
   document.getElementById('d-gastos').textContent = fmt(totalOut);
@@ -1222,6 +1365,7 @@ function renderAll(){
   renderTraslados();
   renderDeudas();
   renderPorCobrar();
+  renderAbonos();
   renderReportes();
   renderConfig();
 }

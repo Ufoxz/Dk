@@ -91,7 +91,7 @@ input,select,textarea{font-family:'Sora',sans-serif;}
 .page-head .desc{color:var(--text-dim);font-size:13px;}
 
 /* ---- cards / grid ---- */
-.grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px;}
 @media(max-width:900px){.grid-cards{grid-template-columns:repeat(2,1fr);}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px;}
 .card .label{font-size:11.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;font-weight:600;}
@@ -217,6 +217,10 @@ tbody tr:hover{background:var(--panel-2);}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 8h13M17 4l3 4-3 4"/><path d="M17 16H4M7 12l-3 4 3 4"/></svg>
       Traslados
     </button>
+    <button data-page="porcobrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/><circle cx="12" cy="12" r="10" opacity="0"/></svg>
+      Por Cobrar
+    </button>
     <button data-page="deudas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 15a2.5 2.5 0 0 0 2.5 1.5c1.4 0 2.5-.8 2.5-2 0-2.5-5-1.5-5-4 0-1.2 1.1-2 2.5-2a2.5 2.5 0 0 1 2.5 1.5M12 7v1.2M12 15.8V17"/></svg>
       Deudas
@@ -244,6 +248,7 @@ tbody tr:hover{background:var(--panel-2);}
         <div class="card"><div class="label">Gastos del mes</div><div class="value bad" id="d-gastos">$0</div></div>
         <div class="card"><div class="label">Balance actual</div><div class="value" id="d-balance">$0</div></div>
         <div class="card"><div class="label">Total deudas pendientes</div><div class="value gold" id="d-deudas">$0</div></div>
+        <div class="card"><div class="label">Total por cobrar</div><div class="value good" id="d-cobrar">$0</div></div>
       </div>
       <div class="panel">
         <h3>Saldo por cuenta</h3>
@@ -396,6 +401,41 @@ tbody tr:hover{background:var(--panel-2);}
       </div>
     </section>
 
+    <!-- POR COBRAR -->
+    <section class="page" id="page-porcobrar">
+      <div class="page-head">
+        <div><h1>Por Cobrar</h1><div class="desc">Dinero que te deben a ti</div></div>
+      </div>
+      <div class="panel">
+        <h3>Nueva cuenta por cobrar</h3>
+        <form id="form-porcobrar" class="form-grid">
+          <div class="field full"><label>Deudor</label><input type="text" id="cob-deudor" placeholder="Juan Pérez, Cliente, Empresa..." required></div>
+          <div class="field"><label>Valor</label><input type="number" id="cob-valor" min="0" step="1" placeholder="500000" required></div>
+          <div class="field"><label>Fecha de inicio</label><input type="date" id="cob-inicio" required></div>
+          <div class="field"><label>Fecha límite</label><input type="date" id="cob-limite" required></div>
+          <div class="field">
+            <label>Estado</label>
+            <select id="cob-estado"><option value="Pendiente">Pendiente</option><option value="Cobrada">Cobrada</option></select>
+          </div>
+          <div class="field full"><label>Descripción (opcional)</label><input type="text" id="cob-desc"></div>
+          <div class="field full"><button type="submit" class="btn">Guardar Por Cobrar</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Mis cuentas por cobrar</h3>
+        <div class="list-content" id="cob-list-content" style="display:none;">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Deudor</th><th class="num">Valor</th><th>Inicio</th><th>Vence</th><th>Estado</th><th></th></tr></thead>
+              <tbody id="cob-tabla"></tbody>
+            </table>
+          </div>
+          <div id="cob-empty" class="empty" style="display:none;">No tienes cuentas por cobrar registradas.</div>
+        </div>
+        <div class="list-toggle-wrap"><button class="btn secondary small list-toggle" id="cob-list-toggle">Ver por cobrar</button></div>
+      </div>
+    </section>
+
     <!-- DEUDAS -->
     <section class="page" id="page-deudas">
       <div class="page-head">
@@ -542,7 +582,8 @@ const defaultState = {
   incomes: [],
   expenses: [],
   transfers: [],
-  debts: []
+  debts: [],
+  receivables: []
 };
 
 function loadState(){
@@ -612,6 +653,7 @@ setupListToggle('ing-list-toggle','ing-list-content','Ver historial de ingresos'
 setupListToggle('gas-list-toggle','gas-list-content','Ver historial de gastos','Ocultar historial de gastos');
 setupListToggle('tra-list-toggle','tra-list-content','Ver historial de traslados','Ocultar historial de traslados');
 setupListToggle('deu-list-toggle','deu-list-content','Ver mis deudas','Ocultar mis deudas');
+setupListToggle('cob-list-toggle','cob-list-content','Ver por cobrar','Ocultar por cobrar');
 setupListToggle('hist-list-toggle','hist-list-content','Ver historial completo','Ocultar historial completo');
 
 /* ========================= NAVEGACION ========================= */
@@ -636,6 +678,7 @@ document.getElementById('nav').addEventListener('click', e=>{
   if(btn.dataset.page === 'traslados') renderTraslados();
   if(btn.dataset.page === 'reportes') renderReportes();
   if(btn.dataset.page === 'config') renderConfig();
+  if(btn.dataset.page === 'porcobrar') renderPorCobrar();
   closeNav();
 });
 
@@ -823,6 +866,58 @@ function renderTraslados(){
   }));
 }
 
+/* ========================= POR COBRAR ========================= */
+document.getElementById('cob-inicio').value = todayISO();
+
+document.getElementById('form-porcobrar').addEventListener('submit', e=>{
+  e.preventDefault();
+  const deudor = document.getElementById('cob-deudor').value.trim();
+  const valor = parseFloat(document.getElementById('cob-valor').value);
+  const inicio = document.getElementById('cob-inicio').value;
+  const limite = document.getElementById('cob-limite').value;
+  const estado = document.getElementById('cob-estado').value;
+  const desc = document.getElementById('cob-desc').value.trim();
+  if(!deudor || !valor || valor<=0 || !inicio || !limite){ showToast('Completa todos los campos requeridos'); return; }
+
+  state.receivables.push({id:uid(), debtor:deudor, value:valor, startDate:inicio, dueDate:limite, status:estado, description:desc});
+  saveState();
+  e.target.reset();
+  document.getElementById('cob-inicio').value = todayISO();
+  renderPorCobrar();
+  renderDashboard();
+  showToast('Cuenta por cobrar guardada');
+});
+
+function renderPorCobrar(){
+  const tbody = document.getElementById('cob-tabla');
+  const sorted = [...state.receivables].sort((a,b)=> a.dueDate.localeCompare(b.dueDate));
+  tbody.innerHTML='';
+  document.getElementById('cob-empty').style.display = sorted.length? 'none':'block';
+  sorted.forEach(c=>{
+    const tr = document.createElement('tr');
+    const tagClass = c.status==='Cobrada' ? 'pagada':'pend';
+    tr.innerHTML = `<td>${c.debtor}</td><td class="num mono">${fmt(c.value)}</td><td>${c.startDate}</td><td>${c.dueDate}</td>
+    <td><span class="tag ${tagClass}">${c.status}</span></td>
+    <td class="row-actions">
+      <button class="icon-btn toggle" data-id="${c.id}" title="Cambiar estado">⇄</button>
+      <button class="icon-btn del" data-id="${c.id}" title="Eliminar">✕</button>
+    </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.toggle').forEach(b=>b.addEventListener('click', ()=>{
+    const c = state.receivables.find(x=>x.id===b.dataset.id);
+    c.status = c.status==='Cobrada' ? 'Pendiente':'Cobrada';
+    saveState(); renderPorCobrar(); renderDashboard();
+  }));
+  tbody.querySelectorAll('.del').forEach(b=>b.addEventListener('click', ()=>{
+    confirmModal('Eliminar cuenta por cobrar','Esta acción no se puede deshacer.', ()=>{
+      state.receivables = state.receivables.filter(x=>x.id!==b.dataset.id);
+      saveState(); renderPorCobrar(); renderDashboard();
+      showToast('Cuenta por cobrar eliminada');
+    });
+  }));
+}
+
 /* ========================= DEUDAS ========================= */
 document.getElementById('deu-inicio').value = todayISO();
 
@@ -884,6 +979,7 @@ function renderDashboard(){
   const totalOut = monthExpenses.reduce((s,g)=>s+g.value,0);
   const balance = totalIn - totalOut;
   const totalDebt = state.debts.filter(d=>d.status==='Pendiente').reduce((s,d)=>s+d.value,0);
+  const totalReceivable = state.receivables.filter(c=>c.status==='Pendiente').reduce((s,c)=>s+c.value,0);
 
   document.getElementById('d-ingresos').textContent = fmt(totalIn);
   document.getElementById('d-gastos').textContent = fmt(totalOut);
@@ -891,6 +987,7 @@ function renderDashboard(){
   balEl.textContent = fmt(balance);
   balEl.className = 'value ' + (balance>=0?'good':'bad');
   document.getElementById('d-deudas').textContent = fmt(totalDebt);
+  document.getElementById('d-cobrar').textContent = fmt(totalReceivable);
 
   // Saldo por cuenta (ingresos - gastos - traslados salientes + traslados entrantes)
   const accBody = document.getElementById('d-accounts-table');
@@ -1124,6 +1221,7 @@ function renderAll(){
   renderGastos();
   renderTraslados();
   renderDeudas();
+  renderPorCobrar();
   renderReportes();
   renderConfig();
 }

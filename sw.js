@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dk-finanzas-v1';
+const CACHE_NAME = 'dk-finanzas-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',
